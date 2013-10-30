@@ -1,0 +1,224 @@
+pro china_analysis_no2_space_smoothing_method_nasa_v2
+
+limit = [15,70,55,150]
+;map_num = "Map_NO1"
+
+year_start = 2005
+year_end   = 2007
+month_start = 1
+month_end = 12
+
+Yr_start = string(year_start,format='(i4.4)')
+Yr_end = string(year_end,format='(i4.4)')
+Mon_start = string(month_start,format='(i2.2)')
+Mon_end = string(month_end,format='(i2.2)')
+Month_tag = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+
+InType   = CTM_Type( 'generic', Res=[0.01d0, 0.01d0], HalfPolar=0, Center180=0 )
+InGrid   = CTM_Grid( InType, /No_Vertical )
+
+xmid = InGrid.xmid
+ymid = InGrid.ymid
+
+dx = InType.Resolution[0]
+dy = InType.Resolution[1]
+
+i1_index = where(xmid ge limit[1] and xmid le limit[3])
+j1_index = where(ymid ge limit[0] and ymid le limit[2])
+I1 = min(i1_index, max = I2)
+J1 = min(j1_index, max = J2)
+print, 'I1:I2',I1,I2, 'J1:J2',J1,J2
+
+
+radius_smooth = 12.0 ;the smoothing radius, unit in (km)
+radius_smooth_str = strtrim(string(fix(radius_smooth)),2)
+gsize = InType.Resolution[0]
+gsize_str = strtrim(string(gsize,format='(f4.2)'),2)
+
+no2_domain_annual = fltarr(I2-I1+1L,J2-J1+1L)
+num_domain_annual = fltarr(I2-I1+1L,J2-J1+1L)
+no2_domain_JJA = fltarr(I2-I1+1L,J2-J1+1L)
+num_domain_JJA = fltarr(I2-I1+1L,J2-J1+1L)
+no2_domain_310 = fltarr(I2-I1+1L,J2-J1+1L)
+num_domain_310 = fltarr(I2-I1+1L,J2-J1+1L)
+
+
+for year = year_start,year_end do begin
+Yr4 = string(year,format='(i4.4)')
+
+for month = month_start,month_end do begin
+Mon2 = string(month,format='(i2.2)')
+
+dir_omi='/z5/wangsiwen/Satellite/no2/NASA_v2_OMI_NO2_asc_for_China_cf50/'+Yr4+'/'+Mon2+'/'
+spawn,'ls '+dir_omi+'OMI-Aura_L2-OMNO2_'+Yr4+'m'+Mon2+'*.asc ',list_omi
+
+
+for k = 0L,n_elements(list_omi)-1L do begin
+PRINT,'file: '+list_omi(k)
+PRINT,strtrim((k+1),2)+' file(s) over '+strtrim(n_elements(list_omi),2)+' files to be processed'
+
+; Define arrays to read in the data
+ARRSIZE    = 50000L
+sdate      = DblArr( ARRSIZE         )
+spix       = DblArr( ARRSIZE         )
+glat       = DblArr( ARRSIZE         )
+glon       = DblArr( ARRSIZE         )
+;rcf        = DblArr( ARRSIZE         )
+fc         = DblArr( ARRSIZE         )
+;cldpres    = DblArr( ARRSIZE         )
+;thpres     = DblArr( ARRSIZE         )
+sza        = DblArr( ARRSIZE         )
+albedo     = DblArr( ARRSIZE         )
+vcolno2    = DblArr( ARRSIZE         )
+
+n = 0L
+
+flelen = strlen(list_omi[k])
+
+date_YY = fix(strmid(list_omi[k], flelen-47, 4))
+date_MM = fix(strmid(list_omi[k], flelen-42, 2))
+date_DD = fix(strmid(list_omi[k], flelen-40, 2))
+
+date_now = date_YY * 10000L + date_MM * 100L + date_DD * 1L
+print,date_now
+
+;Read NO2 files
+result = fltarr(20)
+openr,lun,list_omi(k),/GET_LUN
+
+while ( not EOF( lun ) ) do begin
+
+ReadF,lun,result
+
+sdate[n]   = result[0]
+spix[n]    = result[1]
+glat[n]    = result[2]
+glon[n]    = result[3]
+vcolno2[n] = result[4]
+sza[n]     = result[5]
+;rcf[n]     = result[14]
+fc[n]      = result[15]
+;cldpres[n] = result[16]
+;thpres[n]  = result[17]
+albedo[n]  = result[19]
+
+n++
+endwhile
+;print,n
+
+Close,    lun
+Free_LUN, lun
+
+
+;FILTERING (To customize)
+ind_ok = where((sdate GT 0) AND (sza LT 70.) AND                            $
+               (fc GE 0. AND fc LE 0.2) AND                                 $
+               ;(glat GE limit[0]-0.15 AND glat LE limit[2]+0.15) AND        $
+               ;(glon GE limit[1]-0.15 AND glon LE limit[3]+0.15) AND        $
+               (albedo GE 0. AND albedo LT 0.3) AND                         $
+               (vcolno2 GE 0.) AND                                          $
+               (year LE 2008 AND spix GE 6. AND spix LE 55.) OR             $
+               (year GE 2009 AND spix GE 6. AND spix LE 26.))
+
+
+print,'available pixels in this file',n_elements(ind_ok)
+
+if ind_ok(0) EQ -1 then continue
+
+spix = spix(ind_ok)
+glat = glat(ind_ok)
+glon = glon(ind_ok)
+vcolno2 = vcolno2(ind_ok)
+
+for nn = 0L,n_elements(ind_ok)-1L do begin
+
+    ;remove the row anomaly
+    if (date_now GE 20070625L AND spix(nn) GE 54 AND spix(nn) LE 55) then continue
+    if (date_now GE 20080511L AND spix(nn) GE 38 AND spix(nn) LE 45) then continue   
+    if (date_now GE 20090124L AND spix(nn) GE 28 AND spix(nn) LE 45) then continue
+    if (date_now GE 20110705L AND spix(nn) GE 43 AND spix(nn) LE 46) then continue
+    if (date_now GE 20110801L AND spix(nn) GE 42 AND spix(nn) LE 46) then continue
+
+    x1_index = where(xmid ge glon(nn)-0.15 and xmid le glon(nn)+0.15)
+    y1_index = where(ymid ge glat(nn)-0.15 and ymid le glat(nn)+0.15)
+    x1 = min(x1_index, max = x2)
+    y1 = min(y1_index, max = y2)
+    ;print, 'Grids around OMI pixel:  x1:x2',x1,x2, 'y1:y2',y1,y2
+
+    for xx = 0L,x2-x1 do begin
+      for yy = 0L,y2-y1 do begin
+
+          if ( (xx+x1 lt I1) or (yy+y1 lt J1) or (xx+x1 gt I2) or (yy+y1 gt J2) ) then continue
+
+          distance = map_2points(xmid(xx+x1),ymid(yy+y1),glon(nn),glat(nn),/meters) 
+          distance = distance/1000.
+
+          ;print,xmid(xx+x1),ymid(yy+y1),glon(nn),glat(nn)
+
+          if (distance LE radius_smooth) then begin
+              no2_domain_annual(xx+x1-I1,yy+y1-J1) += vcolno2(nn)
+              num_domain_annual(xx+x1-I1,yy+y1-J1) += 1L
+
+              if (month ge 6 and month le 8) then begin
+                  no2_domain_JJA(xx+x1-I1,yy+y1-J1) += vcolno2(nn)
+                  num_domain_JJA(xx+x1-I1,yy+y1-J1) += 1L
+              endif
+
+              if (month ge 3 and month le 10) then begin
+                  no2_domain_310(xx+x1-I1,yy+y1-J1) += vcolno2(nn)
+                  num_domain_310(xx+x1-I1,yy+y1-J1) += 1L
+              endif
+
+          endif
+
+      endfor
+    endfor          
+
+endfor
+
+print,'total samples used in the domain:',total(num_domain_annual)
+
+endfor ;loop over files
+endfor ;loop over month
+endfor ;loop over year
+
+ind_final = where(num_domain_annual GT 0)
+if ind_final[0] NE -1 then begin
+   no2_domain_annual(ind_final) = no2_domain_annual(ind_final)/num_domain_annual(ind_final)
+endif
+
+ind_nodata = where(num_domain_annual EQ 0)
+if ind_nodata[0] NE -1 then begin
+   no2_domain_annual(ind_nodata) = -999.
+endif
+
+ind_final = where(num_domain_JJA GT 0)
+if ind_final[0] NE -1 then begin
+   no2_domain_JJA(ind_final) = no2_domain_JJA(ind_final)/num_domain_JJA(ind_final)
+endif
+
+ind_nodata = where(num_domain_JJA EQ 0)
+if ind_nodata[0] NE -1 then begin
+   no2_domain_JJA(ind_nodata) = -999.
+endif
+
+ind_final = where(num_domain_310 GT 0)
+if ind_final[0] NE -1 then begin
+   no2_domain_310(ind_final) = no2_domain_310(ind_final)/num_domain_310(ind_final)
+endif
+
+ind_nodata = where(num_domain_310 EQ 0)
+if ind_nodata[0] NE -1 then begin
+   no2_domain_310(ind_nodata) = -999.
+endif
+
+if (year_start eq year_end) then begin
+outfile = './save/no2_over_china_'+gsize_str+'deg_'+radius_smooth_str+'r_'+Yr_start+'_with_nasa_v2.save'
+endif else begin
+outfile = './save/no2_over_china_'+gsize_str+'deg_'+radius_smooth_str+'r_'+Yr_start+'-'+Yr_end+'_with_nasa_v2.save'
+endelse
+
+save,no2_domain_annual,num_domain_annual,no2_domain_JJA,num_domain_JJA,no2_domain_310,num_domain_310,limit,file=outfile
+
+end
