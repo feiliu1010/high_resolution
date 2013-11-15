@@ -1,4 +1,4 @@
-pro find_pp_major
+pro find_pp_major_01
 ;this program is used to lable the power plants' percentage of emissions in one grid
 
 ;build look-up table of power plants' location
@@ -57,7 +57,7 @@ endfor
 
 
 year1=2005
-year2=2005
+year2=2012
 col=year2-year1+1
 result=dblarr(col*2+1,num)
 header_output=strarr(col*2+1)
@@ -112,12 +112,12 @@ sum=density1+density2+density3+density4
 
 
 header_output2 = [['ncols 800'],['nrows 500'],['xllcorner 70'],['yllcorner 10'],['cellsize 0.1'],['nodata_value -999.0']]
-outfile ='/home/liufei/Data/High_resolution/2010emis.asc'
+outfile ='/home/liufei/Data/High_resolution/'+Yr4+'_emis.asc'
 openw,lun,outfile,/get_lun
 printf,lun,header_output2,sum
 close,lun
 free_lun,lun
-outfile ='/home/liufei/Data/High_resolution/'+Yr4+'emis_pp.asc'
+outfile ='/home/liufei/Data/High_resolution/'+Yr4+'_emis_pp.asc'
 openw,lun,outfile,/get_lun
 printf,lun,header_output2,density3
 close,lun

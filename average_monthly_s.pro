@@ -2,12 +2,12 @@ pro average_monthly_s
 
 limit = [15,70,55,150]
 
-year_start = 2012
-year_end   = 2012
+year_start = 2011
+year_end   = 2011
 month_start = 1
 month_end = 12
 
-sensitivity_file='2012_11_25'
+sensitivity_file='2011_11_25'
 
 Yr_start = string(year_start,format='(i4.4)')
 Yr_end = string(year_end,format='(i4.4)')
