@@ -3,7 +3,7 @@ pro average_monthly
 limit = [15,70,55,150]
 
 year_start = 2005
-year_end   = 2005
+year_end   = 2012
 month_start = 1
 month_end = 12
 
@@ -43,7 +43,8 @@ for year = year_start,year_end do begin
 		Mon2 = string(month,format='(i2.2)')
 		no2_domain_monthly = fltarr(I2-I1+1L,J2-J1+1L)
 		header=strarr(6,1)
-		filename='/home/liufei/Data/High_resolution/0.01degree/NO2/monthly/no2_over_china_'+gsize_str+'deg_'+radius_smooth_str+'r_'+Yr4+Mon2+'_with_nasa_v2.asc'
+		filename=file_search('/home/liufei/Data/High_resolution/0.01degree/NO2/monthly/'+Yr4+'_*'+'/no2_over_china_'+gsize_str+'deg_'+radius_smooth_str+'r_'+Yr4+Mon2+'_with_nasa_v2.asc')
+		print,filename
 		openr,lun,filename,/get_lun
 		readf,lun,header,no2_domain_monthly
 		close,lun

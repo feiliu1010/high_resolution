@@ -3,7 +3,7 @@ pro map_city_info
 ;MEIC resolution: 0.1 degree
 FORWARD_FUNCTION CTM_Grid, CTM_Type, CTM_Get_Data
 ;********************************
-num=84
+num=85
 Locate=dblarr(4,num)
 filename = '/home/liufei/Data/High_resolution/City_distance_list.csv'
 DELIMITER = ','

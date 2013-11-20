@@ -1,11 +1,11 @@
-pro map_city_info
+pro map_pp_info
 ;this program is used to mapping information (from MEIC: power plant emissions, vehicle emissions, total emissions; from power plant database: total capacity, SCR capacity) 
 ;MEIC resolution: 0.1 degree
 FORWARD_FUNCTION CTM_Grid, CTM_Type, CTM_Get_Data
 ;********************************
-num=84
+num=33
 Locate=dblarr(4,num)
-filename = '/home/liufei/Data/High_resolution/City_distance_list.csv'
+filename = '/home/liufei/Data/High_resolution/PP_distance_list.csv'
 DELIMITER = ','
 HEADERLINES = 1
 Data= read_ascii(FILENAME, data_start=HEADERLINES,delimiter=DELIMITER)
@@ -38,16 +38,22 @@ endif
 
 endfor
 
+
+unit_coal_2011=dblarr(num)
+unit_coal_2012=dblarr(num)
+unit_emis_2011=dblarr(num)
+unit_emis_2012=dblarr(num)
+
 ;**********************************
 year1=2005
 year2=2012
 ;every year has 4 data: power plant emissions, vehicle emissions, total emissions, total capacity
 col=year2-year1+1
-;2011 and 2012 has one  extra data: SCR capacity
-result=dblarr(col*4+3,num)
-result[col*4+2,*]=Locate[0,*]
-header_output=strarr(col*4+3)
-header_output[col*4+2]='city_ID'
+;2011 and 2012 has one  extra data: SCR capacity, coal consumption, NOX emissions
+result=dblarr(col*4+7,num)
+result[col*4+6,*]=Locate[0,*]
+header_output=strarr(col*4+7)
+header_output[col*4+6]='PP_ID'
 
 For year=year1,year2 do begin
 
@@ -138,8 +144,9 @@ if year le 2010 then begin
 	Locate=Data.(0)
 	unit=[Locate[0,*],Locate[1,*],Locate[year-2005+2,*]]
 endif else begin
-	Locate = dblarr(3,num_pp)
-	unit   = dblarr(3,num_pp)
+	;2011,2012 has extra info: coal consumption and NOX emissions
+	Locate = dblarr(5,num_pp)
+	unit   = dblarr(5,num_pp)
 	filename='/home/liufei/Data/High_resolution/unit_capacity_'+Yr4+'.csv'
 	DELIMITER = ','
         HEADERLINES = 1
@@ -151,6 +158,9 @@ endelse
 
 ;whether pp inside city+-delta
 cap=dblarr(num)
+unit_coal=dblarr(num)
+unit_emis=dblarr(num)
+
 For i=0,num-1 do begin
         x = pplon[i]
         y = pplat[i]
@@ -159,6 +169,10 @@ For i=0,num-1 do begin
 		if (unit[0,j] le lon[min([x+delta,nlon-1])]+grid/2) and (unit[0,j] ge lon[max([x-delta,0])]-grid/2) $
 		and (unit[1,j] le lat[max([y-delta,0])]+grid/2) and (unit[1,j] ge lat[min([y+delta,nlat-1])]-grid/2) then begin
 			cap[i]+= unit[2,j]
+			if year ge 2011 then begin
+				unit_coal[i]+= unit[3,j]
+				unit_emis[i]+= unit[4,j]
+			endif
 		endif
 	endfor			
 endfor
@@ -168,6 +182,18 @@ result[(year-year1)*4,*]= pp
 result[(year-year1)*4+1,*]=vehicle
 result[(year-year1)*4+2,*]=emis
 result[(year-year1)*4+3,*]=cap
+
+case year of 
+2011:unit_coal_2011=unit_coal
+2012:unit_coal_2012=unit_coal
+else:print,'NO',YR4
+endcase
+
+case year of
+2011:unit_emis_2011=unit_emis
+2012:unit_emis_2012=unit_emis
+else:print,'NO',YR4
+endcase
 
 header_output[(year-year1)*4]=strcompress(string(year,format='(i4.4)')+'_pp_emis',/remove)
 header_output[(year-year1)*4+1]=strcompress(string(year,format='(i4.4)')+'_vehicle_emis',/remove)
@@ -213,7 +239,16 @@ For year=2011,2012 do begin
 
 endfor
 
-outfile ='/home/liufei/Data/High_resolution/map_city_info.asc'
+result[col*4+(year2-2011)+1,*]=unit_coal_2011
+result[col*4+(year2-2011)+2,*]=unit_emis_2011
+result[col*4+(year2-2011)+3,*]=unit_coal_2012
+result[col*4+(year2-2011)+4,*]=unit_emis_2012
+header_output[col*4+(year2-2011)+1]='2011_unit_coal'
+header_output[col*4+(year2-2011)+2]='2011_unit_emis'
+header_output[col*4+(year2-2011)+3]='2012_unit_coal'
+header_output[col*4+(year2-2011)+4]='2012_unit_emis'
+
+outfile ='/home/liufei/Data/High_resolution/map_PP_info.asc'
 openw,lun,outfile,/get_lun,WIDTH=2500
 printf,lun,header_output,result
 close,lun
