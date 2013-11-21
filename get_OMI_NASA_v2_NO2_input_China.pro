@@ -5,7 +5,7 @@
 pro get_OMI_NASA_v2_NO2_input_China
 
 for year = 2013,2013 do begin
-for month = 8,9 do begin
+for month = 8,11 do begin
 
 if year eq 2004 and month lt 10 then continue
 
@@ -15,7 +15,8 @@ Mon2 = string(month,format='(i2.2)')
 dir_omi='/z6/satellite/OMI/no2/NASA_Swath_v2/'+Yr4+'/'
 spawn,'ls '+dir_omi+'OMI-Aura_L2-OMNO2_'+Yr4+'m'+Mon2+'*.he5 ',list_omi
 
-dir_output = '/z5/wangsiwen/Satellite/no2/NASA_v2_OMI_NO2_asc_for_China_cf50/'+Yr4+'/'+Mon2+'/'
+dir_output = '/home/liufei/Data/High_resolution/preparation/NASA_v2_OMI_NO2_asc_for_China_cf50/'+Yr4+'/'+Mon2+'/'
+;dir_output = '/z5/wangsiwen/Satellite/no2/NASA_v2_OMI_NO2_asc_for_China_cf50/'+Yr4+'/'+Mon2+'/'
 
 lp = 0 ; Set lp to 20 if only pixels 20~40 are used 
 missing = -999.0

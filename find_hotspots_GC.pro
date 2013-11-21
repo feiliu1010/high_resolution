@@ -2,9 +2,11 @@ pro find_hotspots_GC
 ;this programme is used to find the results of Geos-chem simulation of hotspots
 ;GC resolution:0.5*0.667
 
-num=85
+;num=85
+num=33
 Locate=dblarr(4,num)
-filename = '/home/liufei/Data/High_resolution/City_distance_list.csv'
+;filename = '/home/liufei/Data/High_resolution/City_distance_list.csv'
+filename = '/home/liufei/Data/High_resolution/PP_distance_list.csv'
 DELIMITER = ','
 HEADERLINES = 1
 Data= read_ascii(FILENAME, data_start=HEADERLINES,delimiter=DELIMITER)
@@ -124,12 +126,13 @@ endfor
 pplon_omi= fltarr(num)
 pplat_omi= fltarr(num)
 grid_omi=0.01
-lon_omi = -180+grid_omi/2+indgen(nlon)*grid_omi
-lat_omi = -90 +grid_omi/2+indgen(nlat)*grid_omi
+lon_omi = -180+grid_omi/2+uindgen(nlon_g)*grid_omi
+lat_omi = -90 +grid_omi/2+uindgen(nlat_g)*grid_omi
 
+;print,lon_omi
 For i=0,num-1 do begin
-pplon_omi[i] = max( where( ( lon_omi ge (Locate[1,i]-grid_omi/2)) and (lon le (Locate[1,i]+grid_omi/2)) ,count1) )
-pplat_omi[i] = max( where( ( lat_omi ge (Locate[2,i]-grid_omi/2)) and (lat le (Locate[2,i]+grid_omi/2)) ,count2) )
+pplon_omi[i] = max( where( ( lon_omi ge (Locate[1,i]-grid_omi/2)) and (lon_omi le (Locate[1,i]+grid_omi/2)) ,count1) )
+pplat_omi[i] = max( where( ( lat_omi ge (Locate[2,i]-grid_omi/2)) and (lat_omi le (Locate[2,i]+grid_omi/2)) ,count2) )
 
 if pplon_omi[i] eq -1 then begin
         pplon_omi[i]=where(abs(lon_omi-Locate[1,i]-grid_omi/2) lt 10^(-5.0))
@@ -140,6 +143,7 @@ endif
 
 endfor
 
+;print,pplon_omi,pplat_omi
 
 ;calculate the corresponding GC results inside the hotspot boundary
 emis1=dblarr(num)
@@ -173,12 +177,12 @@ For i=0,num-1 do begin
 	;sum the GC results
 	if GC1[temp_lon,temp_lat] gt 0U then begin
 		emis1[i]+=GC1[temp_lon,temp_lat]
-		emis_weight1[i]+=VC1[x_OMI+j,y_OMI+k]*GC1[temp_lon,temp_lat]
+		emis_weight1[i]+=VC1[x_OMI+j,y_OMI+k]/GC1[temp_lon,temp_lat]
 		sample1[i]+=1
 	endif
 	if GC2[temp_lon,temp_lat] gt 0U then begin
                 emis2[i]+=GC2[temp_lon,temp_lat]
-		emis_weight2[i]+=VC2[x_OMI+j,y_OMI+k]*GC2[temp_lon,temp_lat]
+		emis_weight2[i]+=VC2[x_OMI+j,y_OMI+k]/GC2[temp_lon,temp_lat]
                 sample2[i]+=1
         endif
 	endfor
@@ -207,7 +211,8 @@ result[2,*]= emis2
 result[3,*]= emis_weight1
 result[4,*]= emis_weight2
 
-outfile ='/home/liufei/Data/High_resolution/City_distance_GC_VCD.csv'
+;outfile ='/home/liufei/Data/High_resolution/City_distance_GC_VCD.csv'
+outfile ='/home/liufei/Data/High_resolution/PP_distance_GC_VCD.csv'
 openw,lun,outfile,/get_lun,WIDTH=5000
 printf,lun,header,result
 close,lun

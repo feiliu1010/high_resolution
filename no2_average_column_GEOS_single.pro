@@ -23,8 +23,12 @@ Dayofmonth = [31,28,31,30,31,30,31,31,30,31,30,31]
 year1=2011
 YR1=string(year1,format='(i4.4)')
 
-for month = 1, 7 do begin
+for month = 1, 12 do begin
 for day = 1,Dayofmonth[month-1] do begin
+
+;2011 has no file during 10/25-11/3
+if (year1 eq 2011) and (month eq 10) and (day ge 25) then continue
+if (year1 eq 2011) and (month eq 11) and (day le 3) then continue
 
 Mon2 = string(month,format='(i2.2)')
 Day2 = string( day ,format='(i2.2)')
