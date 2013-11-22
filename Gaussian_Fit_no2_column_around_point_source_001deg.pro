@@ -1,0 +1,81 @@
+pro Gaussian_Fit_no2_column_around_point_source_001deg
+
+site = "SID_9" & lat  = 41.272 & lon  = 121.250 & a1 = 0 & a2 = 120 & b1 = 70 & b2 = 160
+
+lat_str = strtrim(string(lat),2)
+lon_str = strtrim(string(lon),2)
+
+date = '2006_to_2008'
+
+limit = [15,70,55,150]
+
+InType   = CTM_Type( 'generic', Res=[0.01d0, 0.01d0], HalfPolar=0, Center180=0 )
+InGrid   = CTM_Grid( InType, /No_Vertical )
+
+xmid = InGrid.xmid
+ymid = InGrid.ymid
+
+dx = InType.Resolution[0]
+dy = InType.Resolution[1]
+
+i1_index = where(xmid ge limit[1] and xmid le limit[3])
+j1_index = where(ymid ge limit[0] and ymid le limit[2])
+I1 = min(i1_index, max = I2)
+J1 = min(j1_index, max = J2)
+print, 'I1:I2',I1,I2, 'J1:J2',J1,J2
+
+center_x = xmid[I1:I2]
+center_y = ymid[J1:J2]
+
+ngrid = 200.0 ;the number of squares (i.e., grids) in each row/column of the domain
+gsize = 0.01  ;the length and width of a single grid, unit in (km)
+
+gsize_str = strtrim(string(gsize,format='(f4.2)'),2)
+;domain_size_str = strtrim(string(ngrid * gsize,format='(f4.2)'),2)
+
+x1_index = where(xmid gt lon-dx/2.0 and xmid le lon+dx/2.0)
+y1_index = where(ymid gt lat-dy/2.0 and ymid le lat+dy/2.0)
+x1 = min(x1_index, max = x2)
+y1 = min(y1_index, max = y2)
+
+limit_now = [(ymid(y1-ngrid/2)-dy/2),(xmid(x1-ngrid/2)-dx/2),(ymid(y1+ngrid/2-1)+dy/2),(xmid(x1+ngrid/2-1)+dx/2)]
+
+infile = '/z5/wangsiwen/Satellite/no2/NASA_v2_OMI_NO2_001x001_crd30_10-50/nasa_v2_omi_no2_vcol_crd30_10-50_'+date+'_avg.001x001.save'
+restore,infile
+junk = omi_final
+
+junk = junk[(x1-I1-ngrid/2.0):(x1-I1+ngrid/2.0-1),(y1-J1-ngrid/2.0):(y1-J1+ngrid/2.0-1)]
+center_x = center_x[(x1-I1-ngrid/2.0):(x1-I1+ngrid/2.0-1)]
+center_y = center_y[(y1-J1-ngrid/2.0):(y1-J1+ngrid/2.0-1)]
+
+no2_fit = junk[a1:a2,b1:b2]
+center_x = center_x[a1:a2]
+center_y = center_y[b1:b2]
+
+dim=size(no2_fit)
+
+kk = 0L
+
+x_final = fltarr(dim[1])
+y_final = fltarr(dim[2])
+
+for xx = 0, dim[1]-1 do begin
+    distan_x = map_2points(lon,lat,center_x(xx),lat,/meters)/1000.
+    if lon gt center_x(xx) then distan_x = distan_x * (-1.0)
+    x_final(xx) = distan_x
+endfor
+
+for yy = 0, dim[2]-1 do begin
+    distan_y = map_2points(lon,lat,lon,center_y(yy),/meters)/1000.
+    if lat gt center_y(yy) then distan_y = distan_y * (-1.0)
+    y_final(yy) = distan_y
+endfor
+
+print,x_final(0),x_final(dim[1]-1),y_final(0),y_final(dim[2]-1)
+
+result = GAUSS2DFIT(no2_fit,fit_p,x_final,y_final,/TILT)
+
+print,site
+print,fit_p
+
+end
