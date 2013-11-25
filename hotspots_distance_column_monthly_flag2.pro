@@ -1,4 +1,4 @@
-pro hotspots_distance_column_monthly
+pro hotspots_distance_column_monthly_flag2
 ;this program is used to calculate the mean column for city inside the distance 
 ;input file is the 'smooth' average file
 
@@ -59,7 +59,7 @@ Yr4=string(year,format='(i4.4)')
 Mon2=string(month,format='(i2.2)')
 no2=dblarr(nlon,nlat)
 header = strarr(6,1)
-filename=file_search('/home/liufei/Data/High_resolution/0.01degree/NO2/monthly/'+Yr4+'_*'+'/no2_over_china_'+gsize_str+'deg_'+radius_smooth_str+'r_'+Yr4+Mon2+'_with_nasa_v2.asc')
+filename=file_search('/home/liufei/Data/High_resolution/0.01degree/NO2/monthly/flag2/'+Yr4+'/no2_over_china_'+gsize_str+'deg_'+radius_smooth_str+'r_'+Yr4+Mon2+'_with_nasa_v2.asc')
 openr,lun,filename,/get_lun
 readf,lun,header,no2
 close,lun

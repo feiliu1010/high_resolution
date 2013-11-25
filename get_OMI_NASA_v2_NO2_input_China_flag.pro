@@ -1,11 +1,12 @@
 ; This code is writen to refine OMI swath NO2 data
 ; Siwen Wang (Nov 13, 2012)
+; update by Fei Liu (Nov 23, 2013)
 ; Please do not distribute the code to others without author's concent.
 
-pro get_OMI_NASA_v2_NO2_input_China
+pro get_OMI_NASA_v2_NO2_input_China_flag
 
 for year = 2012,2012 do begin
-for month = 12,12 do begin
+for month = 2,2 do begin
 
 if year eq 2004 and month lt 10 then continue
 
@@ -15,7 +16,7 @@ Mon2 = string(month,format='(i2.2)')
 dir_omi='/z6/satellite/OMI/no2/NASA_Swath_v2/'+Yr4+'/'
 spawn,'ls '+dir_omi+'OMI-Aura_L2-OMNO2_'+Yr4+'m'+Mon2+'*.he5 ',list_omi
 
-dir_output = '/home/liufei/Data/High_resolution/preparation/NASA_v2_OMI_NO2_asc_for_China_cf50/'+Yr4+'/'+Mon2+'/'
+dir_output = '/home/liufei/Data/High_resolution/preparation/NASA_v2_OMI_NO2_asc_for_China_cf50/flag/'+Yr4+'/'+Mon2+'/'
 ;dir_output = '/z5/wangsiwen/Satellite/no2/NASA_v2_OMI_NO2_asc_for_China_cf50/'+Yr4+'/'+Mon2+'/'
 
 lp = 0 ; Set lp to 20 if only pixels 20~40 are used 
@@ -48,7 +49,7 @@ cldpre_s    = DblArr( ARRSIZE         )
 sfpres_s    = DblArr( ARRSIZE         )
 terrainht_s = DblArr( ARRSIZE         )
 salb_s      = DblArr( ARRSIZE         )
-;xtrack_flag_s = DblArr( ARRSIZE       )
+xtrack_flag_s = DblArr( ARRSIZE       )
 n = 0L
 
 ;Read hdf files
@@ -84,8 +85,8 @@ dataid  = h5d_open(groupid,'TerrainHeight')        &  terrainht  = h5d_read(data
 h5d_close, dataid
 dataid  = h5d_open(groupid,'ColumnAmountNO2Trop')  &  no2trp     = h5d_read(dataid) / 1.0E+15
 h5d_close, dataid
-;dataid  = h5d_open(groupid,'XTrackQualityFlags')   &  xtrack_flag= h5d_read(dataid)
-;h5d_close, dataid
+dataid  = h5d_open(groupid,'XTrackQualityFlags')   &  xtrack_flag= h5d_read(dataid)
+h5d_close, dataid
 h5g_close, groupid
 
 h5f_close, fid
@@ -110,11 +111,11 @@ date_now = YY * 10000L + MM * 100L + DD * 1L
 print,date_now
 
 ;Apply the filter for row anomaly
-IF yy EQ 2005 OR yy EQ 2006 THEN BEGIN
-    anomalies = 0
-ENDIF ELSE BEGIN
-    anomalies = 1
-ENDELSE
+;IF yy EQ 2005 OR yy EQ 2006 THEN BEGIN
+;    anomalies = 0
+;ENDIF ELSE BEGIN
+;    anomalies = 1
+;ENDELSE
 
 ; Row Anomaly (0-based)
 ; Anomaly 1 (since June 25th 2007) ==> 53:54
@@ -125,14 +126,14 @@ ENDELSE
 ; Anomaly 6 since August 1st 2009 use only cross-track pixels: 0-24
 
 
-IF (anomalies EQ 1) THEN BEGIN
-    PRINT,'REMOVING OMI ANOMALIES...'
-    IF (date_now GE 20070625L) THEN no2trp(53:54,*) = missing
-    IF (date_now GE 20080511L) THEN no2trp(37:44,*) = missing
-    IF (date_now GE 20090124L) THEN no2trp(27:44,*) = missing
-    IF (date_now GE 20110705L) THEN no2trp(42,45,*) = missing
-    IF (date_now GE 20110801L) THEN no2trp(41:45,*) = missing
-ENDIF
+;IF (anomalies EQ 1) THEN BEGIN
+;    PRINT,'REMOVING OMI ANOMALIES...'
+;    IF (date_now GE 20070625L) THEN no2trp(53:54,*) = missing
+;    IF (date_now GE 20080511L) THEN no2trp(37:44,*) = missing
+;    IF (date_now GE 20090124L) THEN no2trp(27:44,*) = missing
+;    IF (date_now GE 20110705L) THEN no2trp(42,45,*) = missing
+;    IF (date_now GE 20110801L) THEN no2trp(41:45,*) = missing
+;ENDIF
 
 npix = N_ELements(no2trp[*,0])
 
@@ -158,7 +159,7 @@ for m=0L,n_elements(g_lon(0,*))-1L do begin
     sfpres_s(n:n+(npix-lp)-1)     = sfpres(lp/2:npix-(lp/2+1),m)    
     terrainht_s(n:n+(npix-lp)-1)  = terrainht(lp/2:npix-(lp/2+1),m)
     salb_s(n:n+(npix-lp)-1)       = salb(lp/2:npix-(lp/2+1),m)
-;    xtrack_flag_s(n:n+(npix-lp)-1)= xtrack_flag(lp/2:npix-(lp/2+1),m)
+    xtrack_flag_s(n:n+(npix-lp)-1)= xtrack_flag(lp/2:npix-(lp/2+1),m)
     n=n+(npix-lp)
 
 endfor
@@ -169,7 +170,7 @@ ind_ok = where((sdate_s GT 0) AND (no2trp_s GE -10.0) AND                   $
                (fc_s GE 0. AND fc_s LE 0.5) AND                             $
                (g_lat_s GE 15. AND g_lat_s LE 55.) AND                      $
                (g_lon_s GE 70. AND g_lon_s LE 150.) AND                     $
-;               (xtrack_flag_s EQ 0) AND                                     $
+               (xtrack_flag_s EQ 0) AND                                     $
                (spx_s GE 5. AND spx_s LE 55.))
 
 print,'available pixels in this file',n_elements(ind_ok)
@@ -196,6 +197,7 @@ cldpre_s     = cldpre_s(ind_ok)
 sfpres_s     = sfpres_s(ind_ok)
 terrainht_s  = terrainht_s(ind_ok)
 salb_s       = salb_s(ind_ok)
+xtrack_flag_s= xtrack_flag_s(ind_ok)
 
 outfile = dir_output + fln_tag + '.asc'
 print,outfile
